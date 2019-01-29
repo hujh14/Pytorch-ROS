@@ -52,6 +52,8 @@ class YOLODetector:
         detections = self.predict(input_imgs)[0]
         if detections is None:
             detections = []
+        else:
+            detections = detections.cpu()
 
         # The amount of padding that was added
         pad_x = max(img.shape[0] - img.shape[1], 0) * (img_size / max(img.shape))
