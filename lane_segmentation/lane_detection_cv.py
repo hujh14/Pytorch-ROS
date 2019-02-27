@@ -50,7 +50,7 @@ def fit_lanes(img, lines):
     l1 = (max_left_x, min_y)
     l2 = (min_left_x, img.shape[0])
     left_lane = [l1, l2]
-    return [right_lane, left_lane]
+    return np.array([right_lane, left_lane])
 
 def detect_lanes(img):
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
@@ -87,7 +87,7 @@ def detect_lanes(img):
         x1,y1,x2,y2 = line[0]
         cv2.line(img, (x1,y1), (x2,y2), (0,255,0), 2)
     for line in lanes:
-        cv2.line(img, line[0], line[1], (0,0,255), 8)
+        cv2.line(img, tuple(line[0]), tuple(line[1]), (0,0,255), 8)
 
     return lanes, img
 

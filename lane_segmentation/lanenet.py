@@ -70,7 +70,7 @@ class LaneNet:
 
             # binary_image = np.array(binary_seg_image[0]*255, dtype='uint8')
             mask_image = cv2.resize(mask_image, (img.shape[1], img.shape[0]), interpolation=cv2.INTER_NEAREST)
-            debug_image = cv2.addWeighted(img, 0.7, mask_image, 0.3, 0)
+            debug_image = cv2.addWeighted(img, 1, mask_image, 0.6, 0)
             return mask_image, debug_image
 
 def run_image():
