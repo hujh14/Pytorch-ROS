@@ -23,11 +23,11 @@ class LaneDetectorNode:
 
     def process_image(self, img_msg):
         img = self.bridge.imgmsg_to_cv2(img_msg)
-        lanes, lanes_debug = self.detector.predict(img)
-        output = json.dumps({"lanes": lanes})
-        self.pub.publish(output)
+        mask_image, debug_image = self.detector.predict(img)
+        #output = json.dumps({"lanes": lanes})
+        #self.pub.publish(output)
 
-        img_msg = self.bridge.cv2_to_imgmsg(lanes_debug, "bgr8")
+        img_msg = self.bridge.cv2_to_imgmsg(debug_image, "bgr8")
         self.pub_debug.publish(img_msg)
 
 

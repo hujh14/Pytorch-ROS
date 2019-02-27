@@ -13,7 +13,9 @@ class VideoPlayer:
         self.pub = rospy.Publisher('/usb_cam/image_raw', Image, queue_size=1)
         self.bridge = CvBridge()
 
-        self.cap = cv2.VideoCapture("dashcam_video.mp4")
+        # video_path = "dashcam_video.mp4"
+        video_path = "highway.mp4"
+        self.cap = cv2.VideoCapture(video_path)
 
         rospy.loginfo("VideoPlayer initialized")
 

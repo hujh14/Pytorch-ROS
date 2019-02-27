@@ -70,17 +70,17 @@ class LaneNet:
 
             # binary_image = np.array(binary_seg_image[0]*255, dtype='uint8')
             mask_image = cv2.resize(mask_image, (img.shape[1], img.shape[0]), interpolation=cv2.INTER_NEAREST)
-            return mask_image
+            debug_image = cv2.addWeighted(img, 0.7, mask_image, 0.3, 0)
+            return mask_image, debug_image
 
 def run_image():
     lanenet = LaneNet()
     image_path = "lanenet-lane-detection/data/tusimple_test_image/0.jpg"
     img = cv2.imread(image_path)
 
-    mask_image = lanenet.predict(img)
+    mask_image, debug_image = lanenet.predict(img)
 
-    debug_img = cv2.addWeighted(img, 0.7, mask_image, 0.3, 0)
-    cv2.imshow('lanes', debug_img)
+    cv2.imshow('lanes', debug_image)
     cv2.waitKey(0)
 
     lanenet.sess.close()
@@ -92,10 +92,9 @@ def run_video():
     cap = cv2.VideoCapture(video_path)
     while(True):
         ret, img = cap.read()
-        mask_image = lanenet.predict(img)
+        mask_image, debug_image = lanenet.predict(img)
 
-        debug_img = cv2.addWeighted(img, 0.7, mask_image, 0.3, 0)
-        cv2.imshow('lanes', debug_img)
+        cv2.imshow('lanes', debug_image)
         
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
