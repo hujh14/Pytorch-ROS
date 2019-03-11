@@ -5,12 +5,13 @@ sys.path.insert(0, './lanenet-lane-detection')
 LaneNet
 """
 import os
+import argparse
 import time
 import cv2
 import numpy as np
 import tensorflow as tf
 import glog as log
-import matplotlib.pyplot as plt
+from tqdm import tqdm
 
 from lanenet_model import lanenet_merge_model
 from lanenet_model import lanenet_cluster
@@ -59,10 +60,10 @@ class LaneNet:
         image = image - VGG_MEAN
 
         with self.sess.as_default():
-            t_start = time.time()
+            t0 = time.time()
             binary_seg_image, instance_seg_image = self.sess.run([self.binary_seg_ret, self.instance_seg_ret],
                                                             feed_dict={self.input_tensor: [image]})
-            # print("Interence:", time.time() - t_start)
+            t1 = time.time()
 
             binary_seg_image[0] = self.postprocessor.postprocess(binary_seg_image[0])
             mask_image = self.cluster.get_lane_mask(binary_seg_ret=binary_seg_image[0],
@@ -71,38 +72,64 @@ class LaneNet:
             # binary_image = np.array(binary_seg_image[0]*255, dtype='uint8')
             mask_image = cv2.resize(mask_image, (img.shape[1], img.shape[0]), interpolation=cv2.INTER_NEAREST)
             debug_image = cv2.addWeighted(img, 1, mask_image, 0.6, 0)
+            t2 = time.time()
+
+            print("Interence:", t1 - t0)
+            print("Postprocess:", t2 - t1)
             return mask_image, debug_image
 
-def run_image():
+def run_image(image_path, output_dir):
     lanenet = LaneNet()
-    image_path = "lanenet-lane-detection/data/tusimple_test_image/0.jpg"
+
     img = cv2.imread(image_path)
+    out_fn = os.path.join(output_dir, os.path.basename(image_path))
 
     mask_image, debug_image = lanenet.predict(img)
-
-    cv2.imshow('lanes', debug_image)
-    cv2.waitKey(0)
+    cv2.imwrite(out_fn, debug_image)
 
     lanenet.sess.close()
 
-def run_video():
+def run_video(video_path, output_dir):
     lanenet = LaneNet()
-    video_path = "test_videos/challenge.mp4"
 
+    # Load input video
     cap = cv2.VideoCapture(video_path)
-    while(True):
+    fps = int(cap.get(cv2.CAP_PROP_FPS))
+    frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    length = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+
+    # Prepare output video
+    out_fn = os.path.join(output_dir, os.path.basename(video_path))
+    fourcc = cv2.VideoWriter_fourcc(*'MP4V')
+    out = cv2.VideoWriter(out_fn, fourcc, fps, (frame_width, frame_height))
+
+    for i in tqdm(range(length)):
         ret, img = cap.read()
         mask_image, debug_image = lanenet.predict(img)
-
-        cv2.imshow('lanes', debug_image)
-        
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
+        out.write(debug_image)
 
     cap.release()
     lanenet.sess.close()
 
 
 if __name__ == '__main__':
-    run_image()
-    # run_video()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-i', '--image_path', type=str, help='The image path')
+    parser.add_argument('-v', '--video_path', type=str, help='The video path')
+    parser.add_argument('-o', '--output_dir', type=str, help='The output dir', default="./output")
+    args = parser.parse_args()
+
+    if not os.path.exists(args.output_dir):
+        os.makedirs(args.output_dir)
+
+    if args.image_path:
+        run_image(args.image_path, args.output_dir)
+    elif args.video_path:
+        run_video(args.video_path, args.output_dir)
+    else:
+        print("Choose image or video.")
+
+
+
+
