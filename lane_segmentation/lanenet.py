@@ -56,27 +56,30 @@ class LaneNet:
             saver.restore(sess=self.sess, save_path=self.weights_path)
 
     def predict(self, img):
+        t0 = time.time()
         image = cv2.resize(img, (512, 256), interpolation=cv2.INTER_LINEAR)
         image = image - VGG_MEAN
 
         with self.sess.as_default():
-            t0 = time.time()
             binary_seg_image, instance_seg_image = self.sess.run([self.binary_seg_ret, self.instance_seg_ret],
                                                             feed_dict={self.input_tensor: [image]})
             t1 = time.time()
+            return binary_seg_image, instance_seg_image
 
-            binary_seg_image[0] = self.postprocessor.postprocess(binary_seg_image[0])
-            mask_image = self.cluster.get_lane_mask(binary_seg_ret=binary_seg_image[0],
-                                               instance_seg_ret=instance_seg_image[0])
 
-            # binary_image = np.array(binary_seg_image[0]*255, dtype='uint8')
-            mask_image = cv2.resize(mask_image, (img.shape[1], img.shape[0]), interpolation=cv2.INTER_NEAREST)
-            debug_image = cv2.addWeighted(img, 1, mask_image, 0.6, 0)
-            t2 = time.time()
+    def postprocess(self, output):
+        t0 = time.time()
+        binary_seg_image, instance_seg_image = output
+        binary_seg_image[0] = self.postprocessor.postprocess(binary_seg_image[0])
+        mask_image = self.cluster.get_lane_mask(binary_seg_ret=binary_seg_image[0],
+                                           instance_seg_ret=instance_seg_image[0])
 
-            print("Interence:", t1 - t0)
-            print("Postprocess:", t2 - t1)
-            return mask_image, debug_image
+        # binary_image = np.array(binary_seg_image[0]*255, dtype='uint8')
+        mask_image = cv2.resize(mask_image, (img.shape[1], img.shape[0]), interpolation=cv2.INTER_NEAREST)
+        debug_image = cv2.addWeighted(img, 1, mask_image, 0.6, 0)
+        t1 = time.time()
+        return mask_image, debug_image
+
 
 def run_image(image_path, output_dir):
     lanenet = LaneNet()
@@ -99,15 +102,26 @@ def run_video(video_path, output_dir):
     frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
     length = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
 
+    print("Inference")
+    start = time.time()
+    outputs = []
+    for i in tqdm(range(length)):
+        ret, img = cap.read()
+        output = lanenet.predict(img)
+        outputs.append(output)
+        print("FPS:", i / (time.time() - start))
+
+
+    print("Postprocessing")
+    start = time.time()
     # Prepare output video
     out_fn = os.path.join(output_dir, os.path.basename(video_path))
     fourcc = cv2.VideoWriter_fourcc(*'MP4V')
     out = cv2.VideoWriter(out_fn, fourcc, fps, (frame_width, frame_height))
-
-    for i in tqdm(range(length)):
-        ret, img = cap.read()
-        mask_image, debug_image = lanenet.predict(img)
+    for i in tqdm(range(len(outputs))):
+        mask_image, debug_image = lanenet.postprocess(outputs[i])
         out.write(debug_image)
+        print("FPS:", i / (time.time() - start))
 
     cap.release()
     lanenet.sess.close()
