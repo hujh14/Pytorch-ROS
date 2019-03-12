@@ -78,10 +78,10 @@ class YOLODetector:
         # Get detections
         detections = []
         with torch.no_grad():
-            detections = self.model(input_imgs)
-            detections = non_max_suppression(detections, 80, self.conf_thres, self.nms_thres)[0]
-            if detections is not None:
-                detections = detections.cpu()
+            dets = self.model(input_imgs)
+            dets = non_max_suppression(dets, 80, self.conf_thres, self.nms_thres)[0]
+            if dets is not None:
+                detections = dets.cpu()
 
         # The amount of padding that was added
         pad_x = max(img.shape[0] - img.shape[1], 0) * (img_size / max(img.shape))
