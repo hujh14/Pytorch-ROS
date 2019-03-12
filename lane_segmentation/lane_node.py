@@ -8,7 +8,7 @@ from sensor_msgs.msg import Image  # the rostopic message we subscribe/publish
 from cv_bridge import CvBridge # package to convert rosmsg<->cv2 
 
 from lanenet import LaneNet
-from lane_detection_cv import detect_lanes
+from lanecv import detect_lanes
 
 class LaneDetectorNode:
 
@@ -28,7 +28,8 @@ class LaneDetectorNode:
         img = self.bridge.imgmsg_to_cv2(img_msg)
 
         if self.use_lanenet:
-            mask_image, debug_image = self.detector.predict(img)
+            prediction = self.detector.predict(img)
+            # debug_image = self.detector.visualize(img, prediction)
         else:
             lanes, debug_image = detect_lanes(img)
             output = json.dumps({"lanes": lanes.tolist()})

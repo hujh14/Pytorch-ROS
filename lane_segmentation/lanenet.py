@@ -1,3 +1,8 @@
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+from __future__ import unicode_literals
+
 import sys
 sys.path.insert(0, './lanenet-lane-detection')
 
@@ -84,7 +89,10 @@ def run_image(image_path, output_dir):
     img = cv2.imread(image_path)
     out_fn = os.path.join(output_dir, os.path.basename(image_path))
 
-    mask_image, debug_image = lanenet.predict(img)
+    prediction = lanenet.predict(img)
+    debug_image = lanenet.visualize(img, prediction)
+
+    print("Writing to", out_fn)
     cv2.imwrite(out_fn, debug_image)
 
     lanenet.sess.close()
@@ -100,7 +108,6 @@ def run_video(video_path, output_dir):
     length = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
 
     print("Inference")
-    start = time.time()
     cache = []
     for i in tqdm(range(length)):
         ret, img = cap.read()
@@ -108,13 +115,9 @@ def run_video(video_path, output_dir):
             break
 
         prediction = lanenet.predict(img)
-
         cache.append((img, prediction))
-        print("FPS:", i / (time.time() - start))
 
-
-    print("Postprocessing")
-    start = time.time()
+    print("Visualize")
     # Prepare output video
     out_fn = os.path.join(output_dir, os.path.basename(video_path))
     fourcc = cv2.VideoWriter_fourcc(*'MP4V')
@@ -123,7 +126,6 @@ def run_video(video_path, output_dir):
         img, prediction = cache[i]
         debug_image = lanenet.visualize(img, prediction)
         out.write(debug_image)
-        print("FPS:", i / (time.time() - start))
 
     cap.release()
     lanenet.sess.close()

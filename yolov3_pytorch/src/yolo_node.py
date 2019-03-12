@@ -7,14 +7,13 @@ from std_msgs.msg import String
 from sensor_msgs.msg import Image  # the rostopic message we subscribe/publish 
 from cv_bridge import CvBridge # package to convert rosmsg<->cv2 
 
-from detector import YOLODetector, get_opt
+from detector import YOLODetector
 from visualize import vis_image
 
 class YOLODetectorNode:
 
     def __init__(self):
-        opt = get_opt()
-        self.detector = YOLODetector(opt)
+        self.detector = YOLODetector()
 
         self.pub = rospy.Publisher('/bboxes', String, queue_size=1)
         self.pub_debug = rospy.Publisher('/bboxes/debug', Image, queue_size=1)
