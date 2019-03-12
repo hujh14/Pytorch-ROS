@@ -16,7 +16,7 @@ from tqdm import tqdm
 
 from models import Darknet
 from utils.utils import *
-from utils.datasets import ImageFolder, prepare_image
+from utils.datasets import ImageFolder
 
 import torch
 from torch.utils.data import DataLoader
@@ -25,6 +25,22 @@ from torch.autograd import Variable
 
 from visualize import vis_image
 
+def prepare_image(img, target_shape):
+    h, w, _ = img.shape
+    dim_diff = np.abs(h - w)
+    # Upper (left) and lower (right) padding
+    pad1, pad2 = dim_diff // 2, dim_diff - dim_diff // 2
+    # Determine padding
+    pad = ((pad1, pad2), (0, 0), (0, 0)) if h <= w else ((0, 0), (pad1, pad2), (0, 0))
+    # Add padding
+    input_img = np.pad(img, pad, 'constant', constant_values=127.5) / 255.
+    # Resize and normalize
+    input_img = cv2.resize(input_img, target_shape, interpolation=cv2.INTER_LINEAR)
+    # Channels-first
+    input_img = np.transpose(input_img, (2, 0, 1))
+    # As pytorch tensor
+    input_img = torch.from_numpy(input_img).float()
+    return input_img
 
 class YOLODetector:
     def __init__(self):
