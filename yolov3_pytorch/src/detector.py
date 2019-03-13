@@ -27,18 +27,17 @@ from visualize import vis_image
 
 def prepare_image(img, target_shape):
     h, w, _ = img.shape
-    dim_diff = np.abs(h - w)
-    # Upper (left) and lower (right) padding
-    pad1, pad2 = dim_diff // 2, dim_diff - dim_diff // 2
-    # Determine padding
-    pad = ((pad1, pad2), (0, 0), (0, 0)) if h <= w else ((0, 0), (pad1, pad2), (0, 0))
-    # Add padding
-    input_img = np.pad(img, pad, 'constant', constant_values=127.5) / 255.
-    # Resize and normalize
-    input_img = cv2.resize(input_img, target_shape, interpolation=cv2.INTER_LINEAR)
-    # Channels-first
+    h_t, w_t = target_shape
+    ratio = min(h_t / h, w_t / w)
+    h_r, w_r = int(h*ratio), int(w*ratio)
+    pad_x = int((w_t - w_r) / 2)
+    pad_y = int((h_t - h_r) / 2)
+
+    resized = cv2.resize(img, (w_r, h_r), interpolation=cv2.INTER_LINEAR) / 255
+
+    input_img = np.ones((h_t, w_t, 3)) / 2
+    input_img[pad_y:pad_y+h_r, pad_x:pad_x+w_r] = resized
     input_img = np.transpose(input_img, (2, 0, 1))
-    # As pytorch tensor
     input_img = torch.from_numpy(input_img).float()
     return input_img
 
