@@ -5,6 +5,7 @@ import argparse
 import os
 import cv2
 import numpy as np
+from tqdm import tqdm
 
 import torch
 from torch.autograd import Variable
@@ -57,10 +58,41 @@ class MegaDepth:
 def run_image(model, image_path, output_dir):
     img = cv2.imread(image_path)
     prediction = model.predict(img)
-
     debug_image = model.visualize(img, prediction)
-    cv2.imwrite('demo.png', debug_image)
 
+    out_fn = os.path.join(output_dir, os.path.basename(image_path))
+    cv2.imwrite(out_fn, debug_image)
+    print("Wrote to", out_fn)
+
+def run_video(model, video_path, output_dir):
+    # Load input video
+    cap = cv2.VideoCapture(video_path)
+    fps = int(cap.get(cv2.CAP_PROP_FPS))
+    frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    length = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+
+    print("Inference")
+    cache = []
+    for i in tqdm(range(length)):
+        ret, img = cap.read()
+        if img is None:
+            break
+
+        prediction = model.predict(img)
+        cache.append((img, prediction))
+
+    print("Visualize")
+    # Prepare output video
+    out_fn = os.path.join(output_dir, os.path.basename(video_path))
+    fourcc = cv2.VideoWriter_fourcc(*'MP4V')
+    out = cv2.VideoWriter(out_fn, fourcc, fps, (frame_width, frame_height))
+    for i in tqdm(range(len(cache))):
+        img, prediction = cache[i]
+        debug_image = model.visualize(img, prediction)
+        out.write(debug_image)
+
+    cap.release()
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -68,12 +100,17 @@ if __name__ == '__main__':
     parser.add_argument('-v', '--video_path', type=str, help='The video path')
     parser.add_argument('-o', '--output_dir', type=str, help='The output dir', default="./output")
     args = parser.parse_args()
-    
+
+    model = MegaDepth()
+
     if not os.path.exists(args.output_dir):
         os.makedirs(args.output_dir)
 
-    image_path = './MegaDepth/demo.jpg'
+    if args.image_path:
+        run_image(model, args.image_path, args.output_dir)
+    elif args.video_path:
+        run_video(model, args.video_path, args.output_dir)
+    else:
+        print("Choose image or video.")
 
-    model = MegaDepth()
-    run_image(model, image_path, args.output_dir)
 
