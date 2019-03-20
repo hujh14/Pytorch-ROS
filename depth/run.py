@@ -53,7 +53,7 @@ class MegaDepth:
         # pred_inv_depth = pred_inv_depth.data.cpu().numpy()
         # you might also use percentile for better visualization
         pred_inv_depth = pred_inv_depth/np.amax(pred_inv_depth)
-        debug_image = 255 * pred_inv_depth
+        debug_image = np.array(255 * pred_inv_depth, dtype='uint8')
         return debug_image
 
 
@@ -79,7 +79,7 @@ def run_video(model, video_path, output_dir):
     for i in tqdm(range(length)):
         ret, img = cap.read()
         if img is None:
-            break
+            continue
 
         prediction = model.predict(img)
         cache.append((img, prediction))
@@ -89,9 +89,12 @@ def run_video(model, video_path, output_dir):
     out_fn = os.path.join(output_dir, os.path.basename(video_path))
     fourcc = cv2.VideoWriter_fourcc(*'MP4V')
     out = cv2.VideoWriter(out_fn, fourcc, fps, (frame_width, frame_height))
-    for i in tqdm(range(len(cache))):
-        img, prediction = cache[i]
+    for img, prediction in tqdm(cache):
         debug_image = model.visualize(img, prediction)
+        
+        if debug_image.ndim == 2:
+            debug_image = cv2.cvtColor(debug_image, cv2.COLOR_GRAY2BGR)
+            debug_image = cv2.resize(debug_image, (frame_width, frame_height))
         out.write(debug_image)
 
     cap.release()
