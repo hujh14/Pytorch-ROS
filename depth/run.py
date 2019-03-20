@@ -42,8 +42,7 @@ class MegaDepth:
         pred_log_depth = self.model.netG.forward(input_images) 
         pred_log_depth = torch.squeeze(pred_log_depth)
         pred_depth = torch.exp(pred_log_depth)
-        detections = pred_depth.cpu()
-        return detections
+        return pred_depth
 
     def visualize(self, img, prediction):
         # visualize prediction using inverse depth, so that we don't need sky segmentation (if you want to use RGB map for visualization, \
