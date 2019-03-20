@@ -152,7 +152,7 @@ def run_video(video_path, output_dir):
     for i in tqdm(range(length)):
         ret, img = cap.read()
         if img is None:
-            break
+            continue
 
         prediction = detector.predict(img)
         cache.append((img, prediction))
