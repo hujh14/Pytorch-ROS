@@ -5,6 +5,8 @@ import argparse
 import os
 import cv2
 import numpy as np
+from skimage import io
+from skimage.transform import resize
 
 import torch
 from torch.autograd import Variable
@@ -16,7 +18,7 @@ from models.models import create_model
 class MegaDepth:
 
     def __init__(self):
-        # Fix symlink checkpoint dir
+
         self.setup()
 
     def setup(self):
@@ -26,9 +28,8 @@ class MegaDepth:
     def preprocess(self, img):
         input_height = 384
         input_width  = 512
-        img = img[:,:,::-1]
         img = np.float32(img)/255.0
-        img = cv2.resize(img, (input_width, input_height))
+        img = resize(img, (input_height, input_width), order = 1)
         img = np.transpose(img, (2,0,1))
         return img
 
@@ -50,16 +51,17 @@ class MegaDepth:
         pred_inv_depth = pred_inv_depth.data.cpu().numpy()
         # you might also use percentile for better visualization
         pred_inv_depth = pred_inv_depth/np.amax(pred_inv_depth)
-        debug_image = 255 * pred_inv_depth
-        return debug_image
+        return pred_inv_depth
+
+        # print(pred_inv_depth.shape)
 
 
 def run_image(model, image_path, output_dir):
-    img = cv2.imread(image_path)
+    img = io.imread(image_path)
     prediction = model.predict(img)
 
     debug_image = model.visualize(img, prediction)
-    cv2.imwrite('demo.png', debug_image)
+    io.imsave('demo.png', debug_image)
 
 
 if __name__ == '__main__':
