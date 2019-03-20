@@ -42,13 +42,15 @@ class MegaDepth:
         pred_log_depth = self.model.netG.forward(input_images) 
         pred_log_depth = torch.squeeze(pred_log_depth)
         pred_depth = torch.exp(pred_log_depth)
-        return pred_depth
+        
+        prediction = pred_depth.data.cpu().numpy()
+        return prediction
 
     def visualize(self, img, prediction):
         # visualize prediction using inverse depth, so that we don't need sky segmentation (if you want to use RGB map for visualization, \
         # you have to run semantic segmentation to mask the sky first since the depth of sky is random from CNN)
         pred_inv_depth = 1/prediction
-        pred_inv_depth = pred_inv_depth.data.cpu().numpy()
+        # pred_inv_depth = pred_inv_depth.data.cpu().numpy()
         # you might also use percentile for better visualization
         pred_inv_depth = pred_inv_depth/np.amax(pred_inv_depth)
         debug_image = 255 * pred_inv_depth
