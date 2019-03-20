@@ -5,8 +5,6 @@ import argparse
 import os
 import cv2
 import numpy as np
-from skimage import io
-from skimage.transform import resize
 
 import torch
 from torch.autograd import Variable
@@ -28,8 +26,9 @@ class MegaDepth:
     def preprocess(self, img):
         input_height = 384
         input_width  = 512
+        img = img[:,:,::-1]
         img = np.float32(img)/255.0
-        img = resize(img, (input_height, input_width), order = 1)
+        img = cv2.resize(img, (input_width, input_height))
         img = np.transpose(img, (2,0,1))
         return img
 
@@ -57,11 +56,11 @@ class MegaDepth:
 
 
 def run_image(model, image_path, output_dir):
-    img = io.imread(image_path)
+    img = cv2.imread(image_path)
     prediction = model.predict(img)
 
     debug_image = model.visualize(img, prediction)
-    io.imsave('demo.png', debug_image)
+    cv2.imwrite('demo.png', debug_image)
 
 
 if __name__ == '__main__':
